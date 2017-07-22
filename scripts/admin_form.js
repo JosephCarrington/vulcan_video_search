@@ -31,7 +31,7 @@ jQuery(document).ready(function($) {
 
             var titleChars = 41,
               categoryChars = 9,
-              locationChars = 39, // Ignored
+              locationChars = 39,
               storeChars = 3;
 
             if(line.length != titleChars + categoryChars + locationChars + storeChars + 1) {
@@ -158,6 +158,7 @@ function parseLine(line, titleChars, categoryChars, locationChars, storeChars) {
 
   video.title = titleString.toString();
   video.category = line.substr(titleChars, categoryChars).trim();
+  video.location = line.substr(titleChars + categoryChars + 1, locationChars).trim();
   video.store = parseInt(line.substr(titleChars + categoryChars + locationChars + 1, storeChars).trim());
 
   return video;
@@ -175,5 +176,6 @@ function VideoRecord() {
   this.title = null;
   this.format = null;
   this.category = null;
+  this.location = null;
   this.store = null;
 }

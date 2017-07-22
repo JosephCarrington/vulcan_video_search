@@ -174,7 +174,7 @@ add_shortcode('vulcan_video_search', function($atts) {
     $category = isset($_GET['category']) ? $_GET['category'] : NULL;
     $store = isset($_GET['store']) ? $_GET['store'] : NULL;
 
-    $query = "SELECT name, format, category, store FROM vulcan_videos WHERE 1=1";
+    $query = "SELECT id, name, format, category, store FROM vulcan_videos WHERE 1=1";
     if($title) {
       $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $wpdb->esc_like($title) . '%');
     }
@@ -207,11 +207,16 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= '<table id="videos">';
         $html .= '<tbody>';
           foreach($videos as $video) {
+            $category = array_search($video->category, $categoryNamesToCodes);
+            if($category == "DW") {
+              $location = $wpdb->get_col($wpdb->prepare('SELECT location FROM vulcan_videos where id=%d', $video->id));
+              $category .= "($location)";
+            }
             $html .= '<tr>';
               $html .= "<td>$video->name</td>";
               $html .= "<td>$video->format</td>";
               $html .= "<td>";
-                $html .= array_search($video->category, $categoryNamesToCodes);
+                $html .= $category;
               $html .= "</td>";
               $html .= "<td>";
                 $html .= array_search($video->store, $storeNamesToCodes);
