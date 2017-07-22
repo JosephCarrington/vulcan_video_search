@@ -158,7 +158,7 @@ function parseLine(line, titleChars, categoryChars, locationChars, storeChars) {
 
   video.title = titleString.toString();
   video.category = line.substr(titleChars, categoryChars).trim();
-  video.location = line.substr(titleChars + categoryChars + 1, locationChars).trim();
+  video.location = line.substr(titleChars + categoryChars, locationChars).trim();
   video.store = parseInt(line.substr(titleChars + categoryChars + locationChars + 1, storeChars).trim());
 
   return video;

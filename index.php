@@ -142,7 +142,17 @@ function vulcan_video_upload() {
     $line->title = addslashes($line->title);
     $line->title = (string)str_replace(',', '\,', $line->title);
     // fputcsv($file, (array)$line);
-    $csv = ',' . $line->title . ',' . $line->format . ',' . $line->category . ',' . $line->store . "\n";
+    $csv = ','
+    . trim($line->title)
+    . ','
+    . trim($line->format)
+    . ','
+    . trim($line->category)
+    . ','
+    . trim($line->location)
+    . ','
+    . trim($line->store)
+    . "\n";
     fwrite($file, $csv);
   }
   fclose($file);
@@ -174,7 +184,7 @@ add_shortcode('vulcan_video_search', function($atts) {
     $category = isset($_GET['category']) ? $_GET['category'] : NULL;
     $store = isset($_GET['store']) ? $_GET['store'] : NULL;
 
-    $query = "SELECT id, name, format, category, store FROM vulcan_videos WHERE 1=1";
+    $query = "SELECT DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
     if($title) {
       $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $wpdb->esc_like($title) . '%');
     }
@@ -184,6 +194,7 @@ add_shortcode('vulcan_video_search', function($atts) {
     if($store) {
       $query .= $wpdb->prepare(" AND store=%d", $store);
     }
+    $query .= ' ORDER BY store LIMIT 25';
     $videos = $wpdb->get_results($query);
     $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
@@ -208,9 +219,9 @@ add_shortcode('vulcan_video_search', function($atts) {
         $html .= '<tbody>';
           foreach($videos as $video) {
             $category = array_search($video->category, $categoryNamesToCodes);
-            if($category == "DW") {
-              $location = $wpdb->get_col($wpdb->prepare('SELECT location FROM vulcan_videos where id=%d', $video->id));
-              $category .= "($location)";
+            if($category == "Director's Wall") {
+              $location = $video->location;
+              $category .= " ($location)";
             }
             $html .= '<tr>';
               $html .= "<td>$video->name</td>";
