@@ -4,6 +4,7 @@ Plugin Name: Vulcan Video Search
 Author: Joseph Carrington
 Author URI: http://www.josephcarrington.com
 Description: A WordPress plugin to search videos imported from Vulcan's DOS formatted inventory sheets
+Version: 0.0.2
 */
 register_activation_hook(__FILE__, function() {
   // Get our globals and helpers
@@ -16,6 +17,7 @@ register_activation_hook(__FILE__, function() {
     name tinytext NOT NULL,
     format tinytext NOT NULL,
     category tinytext,
+    location tinytext,
     store int(2) NOT NULL,
     PRIMARY KEY  (id)
   ) $charset_collate";
@@ -158,7 +160,7 @@ function vulcan_video_clear_and_insert() {
   $sql = 'TRUNCATE TABLE vulcan_videos';
   $wpdb->query($sql);
 
-  $sql = "LOAD DATA INFILE '" . plugin_dir_path(__FILE__) . $_POST['filename'] . "' INTO TABLE vulcan_videos FIELDS TERMINATED BY ',' ESCAPED BY'\\\'";
+  $sql = "LOAD DATA LOCAL INFILE '" . plugin_dir_path(__FILE__) . $_POST['filename'] . "' INTO TABLE vulcan_videos FIELDS TERMINATED BY ',' ESCAPED BY'\\\'";
   $wpdb->query($sql);
 
   wp_die('Table cleared, and new records uploaded. All done!');
@@ -183,6 +185,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $query .= $wpdb->prepare(" AND store=%d", $store);
     }
     $videos = $wpdb->get_results($query);
+    $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
       $settings = get_option('vulcan_video_settings');
       $categoriesText = $settings['categories'];
