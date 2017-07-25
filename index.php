@@ -123,7 +123,7 @@ function vulcan_video_admin_menu() {
 
 add_action('admin_enqueue_scripts', function($hook) {
   if($hook == "toplevel_page_vulcan_video_search") {
-    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', ['jquery', 'plupload']);
+    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', array('jquery', 'plupload'));
     wp_localize_script('vulcan_video_admin_js', 'serverVariables', array('pluginDirURL' => plugin_dir_url(__FILE__), 'ABSPATH' => ABSPATH));
     wp_enqueue_script('vulcan_video_admin_js');
   }
@@ -201,7 +201,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $settings = get_option('vulcan_video_settings');
       $categoriesText = $settings['categories'];
       $categories = explode("\n", $categoriesText);
-      $categoryNamesToCodes = [];
+      $categoryNamesToCodes = array();
       foreach($categories as $category) {
         $category = explode(':', $category);
         $categoryNamesToCodes[trim($category[0])] = trim($category[1]);
