@@ -84,20 +84,23 @@ function vulcan_video_admin_menu() {
       </table>
     </form>
     <br />
-    <h2>Category Options</h2>
-    <p>Here you can adjust the categories that a user can search by. Format is <code>Human Readable Name:Category Code</code>, one entry per line.</p>
+    <h2>Plugin Options</h2>
     <form method="POST" action="options.php">
       <?php settings_fields('vulcan_video_settings'); ?>
       <?php $options = get_option('vulcan_video_settings'); ?>
       <?php
         $categories = isset($options['categories']) ? $options['categories'] : '';
         $stores = isset($options['stores']) ? $options['stores'] : '';
+        $postsPerPage = isset($options['postsPerPage']) ? $options['postsPerPage'] : 25;
+        $ignored = isset($options['ignored']) ? $options['ignored'] : '';
+
       ?>
       <table class="form-table">
         <tbody>
-          <tr>
             <th scope="row">
               <label for="categories">Categories</label>
+              <br />
+              <code>Human Readable Name:Category Code</code>
             </th>
             <td>
               <textarea cols="50" rows="10" name="vulcan_video_settings[categories]" id="categories"><?php echo $categories; ?></textarea>
@@ -106,11 +109,30 @@ function vulcan_video_admin_menu() {
           <tr>
             <th scope="row">
               <label for="stores">Stores</label>
+              <br />
+              <code>Human Readable Name:Store Code</code>
             </th>
             <td>
               <textarea cols="50" rows="3" name="vulcan_video_settings[stores]" id="stores"><?php echo $stores; ?></textarea>
             </td>
           </tr>
+          <tr>
+            <th scope="row">
+              <label for="postsPerPage">Results Per Page</label>
+            </th>
+            <td>
+              <input type="number" name="vulcan_video_settings[postsPerPage]" id="postsPerPage" value="<?php echo $postsPerPage; ?>" step="1" min="1" max="100" />
+            </td>
+          <tr>
+          <!-- <tr>
+            <th scope="row">
+              <label for="ignored">Ignored Categories</label>
+              <p>List category codes to ignore on the front-end</p>
+            </th>
+            <td>
+              <textarea cols="50" rows="3" name="vulcan_video_settings[ignored]" id="ignored"><?php // echo $ignored; ?></textarea>
+            </td>
+          </tr> -->
         </tbody>
       </table>
       <p class="submit">
@@ -127,6 +149,10 @@ add_action('admin_enqueue_scripts', function($hook) {
     wp_localize_script('vulcan_video_admin_js', 'serverVariables', array('pluginDirURL' => plugin_dir_url(__FILE__), 'ABSPATH' => ABSPATH));
     wp_enqueue_script('vulcan_video_admin_js');
   }
+});
+
+add_action('wp_enqueue_scripts', function() {
+  wp_enqueue_style('vulcan_video_search', plugin_dir_url(__FILE__) . 'vulcan_video_search.css');
 });
 
 add_action( 'wp_ajax_vulcan_video_upload', 'vulcan_video_upload' );
@@ -180,23 +206,32 @@ add_shortcode('vulcan_video_search', function($atts) {
   $html = '';
   if(isset($_GET['title']) || isset($_GET['category']) || isset($_GET['store'])) {
     global $wpdb;
-    $title = isset($_GET['title']) ? $_GET['title'] : NULL;
-    $category = isset($_GET['category']) ? $_GET['category'] : NULL;
-    $store = isset($_GET['store']) ? $_GET['store'] : NULL;
+    $titleQ = isset($_GET['title']) ? $_GET['title'] : NULL;
+    $categoryQ = isset($_GET['category']) ? $_GET['category'] : NULL;
+    $storeQ = isset($_GET['store']) ? $_GET['store'] : NULL;
 
-    $query = "SELECT DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
-    if($title) {
-      $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $wpdb->esc_like($title) . '%');
+    $pageQ = isset($_GET['vv_page']) ? $_GET['vv_page'] : 1;
+
+    $postsPerPage = get_option('vulcan_video_settings')['postsPerPage'];
+
+    $query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
+    if($titleQ) {
+      $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $wpdb->esc_like($titleQ) . '%');
     }
-    if($category) {
-      $query .= $wpdb->prepare(" AND category=%s", $category);
+    if($categoryQ) {
+      $query .= $wpdb->prepare(" AND category=%s", $categoryQ);
     }
-    if($store) {
-      $query .= $wpdb->prepare(" AND store=%d", $store);
+    if($storeQ) {
+      $query .= $wpdb->prepare(" AND store=%d", $storeQ);
     }
-    $query .= ' ORDER BY store LIMIT 25';
+    $query .= " LIMIT $postsPerPage";
+    if($pageQ) {
+      $query .= $wpdb->prepare(" OFFSET %d", $pageQ * $postsPerPage);
+    }
+
     $videos = $wpdb->get_results($query);
-    $videos = array_unique($videos, SORT_REGULAR);
+    $rows = $wpdb->get_results('SELECT FOUND_ROWS() as count')[0]->count;
+    // $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
       $settings = get_option('vulcan_video_settings');
       $categoriesText = $settings['categories'];
@@ -236,6 +271,19 @@ add_shortcode('vulcan_video_search', function($atts) {
           }
         $html .= '</tbody>';
       $html .= '</table>';
+      $html .= "<p>Showing " . ((($pageQ * $postsPerPage) - $postsPerPage) + 1) . " - " . ($pageQ * $postsPerPage) . " of $rows results</p>";
+      $html .= '<div class="vv-pagination">';
+      if($pageQ > 1) {
+        $html .= '<div class="nav-previous alignleft">Previous videos</div>';
+      }
+      // If we have more records to show
+      if((($pageQ * $postsPerPage) + $postsPerPage) < $rows) {
+        $nextURL = $_SERVER['REDIRECT_URL'];
+        $nextURL .= "?title=$titleQ&category=$categoryQ&store=$storeQ&vv_page=" . ($pageQ + 1);
+        // $nextURL = urlencode($nextURL);
+        $html .= '<div class="nav-next alignright"><a href="' . $nextURL . '" title="Next videos">Next videos</a></div>';
+      }
+      $html .= '</div>';
     }
     else {
       $html .= "<p>No records found.</p>";
