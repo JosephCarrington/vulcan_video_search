@@ -159,13 +159,13 @@ function parseLine(line, titleChars, categoryChars, locationChars, storeChars) {
   video.title = titleString.toString();
   video.category = line.substr(titleChars, categoryChars).trim();
   video.location = line.substr(titleChars + categoryChars, locationChars).trim();
+  video.location = replaceSpecialChars(video.location);
   video.store = parseInt(line.substr(titleChars + categoryChars + locationChars + 1, storeChars).trim());
-
   return video;
 }
 
 function replaceSpecialChars(string) {
-  string.replace(/\,/g, '\\,')
+  string = string.replace(/\,/g, '\\,')
   .replace(/\"/g, '\\"');
 
   return string;
