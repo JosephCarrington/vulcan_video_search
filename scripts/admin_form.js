@@ -31,7 +31,6 @@ jQuery(document).ready(function($) {
             var locLine = lineParts.pop();
             currentStoreCode = locLine.substr(0, 2).trim();
             re = new RegExp('\\s' + currentStoreCode + '$');
-            console.log(re);
           }
 
           // Only pay attention to lines that end with 33 or 1, which are store codes
