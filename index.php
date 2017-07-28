@@ -241,9 +241,9 @@ add_shortcode('vulcan_video_search', function($atts) {
       $query .= ")";
     }
 
-    $query .= " LIMIT $postsPerPage";
+    $query .= " ORDER BY name LIMIT $postsPerPage";
     if($pageQ) {
-      $query .= $wpdb->prepare(" OFFSET %d", $pageQ * $postsPerPage);
+      $query .= $wpdb->prepare(" OFFSET %d", ($pageQ * $postsPerPage) - $postsPerPage);
     }
 
     $videos = $wpdb->get_results($query);
