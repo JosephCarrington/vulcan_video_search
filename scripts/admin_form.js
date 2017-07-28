@@ -22,9 +22,19 @@ jQuery(document).ready(function($) {
           var line = lines[x];
           // Remove copious whitespace chars
           line = line.trim();
+          // Get store code form end of first line
+          var currentStoreCode;
+          var re;
+          if(x == 0) {
+            var locRe = /Loc\:\s*/;
+            var lineParts = line.split(locRe);
+            var locLine = lineParts.pop();
+            currentStoreCode = locLine.substr(0, 2).trim();
+            re = new RegExp('\\s' + currentStoreCode + '$');
+            console.log(re);
+          }
 
           // Only pay attention to lines that end with 33 or 1, which are store codes
-          var re = /\s(33|1)$/;
           if(re.test(line)) {
             // Line has 33 or 1 at the end, create a video object from the line
             // See below for example line
