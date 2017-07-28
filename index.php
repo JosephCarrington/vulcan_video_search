@@ -217,7 +217,9 @@ add_shortcode('vulcan_video_search', function($atts) {
 
     $query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
     if($titleQ) {
-      $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $wpdb->esc_like($titleQ) . '%');
+      $titleQ = stripcslashes($titleQ);
+      $safeTitle = $wpdb->esc_like($titleQ);
+      $query .= $wpdb->prepare(" AND name LIKE %s", '%' . $safeTitle . '%');
     }
     if($categoryQ) {
       $query .= $wpdb->prepare(" AND category=%s", $categoryQ);
@@ -312,7 +314,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= '<label for="title">Title</label>';
       $html .= '<input type="text" name="title" id="title"';
         if(isset($_GET['title'])) {
-          $html .= ' value="' . $_GET['title'] . '"';
+          $html .= ' value="' . htmlspecialchars(stripcslashes($_GET['title'])) . '"';
         }
       $html .= ' />';
       $html .= '<label for="category">Category</label>';
