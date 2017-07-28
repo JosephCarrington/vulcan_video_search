@@ -124,15 +124,15 @@ function vulcan_video_admin_menu() {
               <input type="number" name="vulcan_video_settings[postsPerPage]" id="postsPerPage" value="<?php echo $postsPerPage; ?>" step="1" min="1" max="100" />
             </td>
           <tr>
-          <!-- <tr>
+          <tr>
             <th scope="row">
               <label for="ignored">Ignored Categories</label>
-              <p>List category codes to ignore on the front-end</p>
+              <p>List category codes to ignore on the front-end, one category code per line</p>
             </th>
             <td>
-              <textarea cols="50" rows="3" name="vulcan_video_settings[ignored]" id="ignored"><?php // echo $ignored; ?></textarea>
+              <textarea cols="50" rows="3" name="vulcan_video_settings[ignored]" id="ignored"><?php echo $ignored; ?></textarea>
             </td>
-          </tr> -->
+          </tr>
         </tbody>
       </table>
       <p class="submit">
@@ -212,7 +212,8 @@ add_shortcode('vulcan_video_search', function($atts) {
 
     $pageQ = isset($_GET['vv_page']) ? $_GET['vv_page'] : 1;
 
-    $postsPerPage = get_option('vulcan_video_settings')['postsPerPage'];
+    $settings = get_option('vulcan_video_settings');
+    $postsPerPage = $settings['postsPerPage'];
 
     $query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
     if($titleQ) {
@@ -224,6 +225,22 @@ add_shortcode('vulcan_video_search', function($atts) {
     if($storeQ) {
       $query .= $wpdb->prepare(" AND store=%d", $storeQ);
     }
+
+    $ignoredCategoriesText = isset($settings['ignored']) ? $settings['ignored'] : NULL;
+    if($ignoredCategoriesText && $ignoredCategoriesText != '') {
+      $query .= " AND category NOT IN (";
+      $ignoredCats = explode("\n", $ignoredCategoriesText);
+      error_log(print_r($ignoredCategoriesText, true));
+      for($i = 0, $j = count($ignoredCats); $i < $j; $i ++) {
+        $query .= "'" . trim($ignoredCats[$i]) . "'";
+        if($i + 1 < $j) {
+          $query .= ",";
+        }
+      }
+
+      $query .= ")";
+    }
+
     $query .= " LIMIT $postsPerPage";
     if($pageQ) {
       $query .= $wpdb->prepare(" OFFSET %d", $pageQ * $postsPerPage);
@@ -233,7 +250,6 @@ add_shortcode('vulcan_video_search', function($atts) {
     $rows = $wpdb->get_results('SELECT FOUND_ROWS() as count')[0]->count;
     // $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
-      $settings = get_option('vulcan_video_settings');
       $categoriesText = $settings['categories'];
       $categories = explode("\n", $categoriesText);
       $categoryNamesToCodes = [];
@@ -271,16 +287,18 @@ add_shortcode('vulcan_video_search', function($atts) {
           }
         $html .= '</tbody>';
       $html .= '</table>';
-      $html .= "<p>Showing " . ((($pageQ * $postsPerPage) - $postsPerPage) + 1) . " - " . ($pageQ * $postsPerPage) . " of $rows results</p>";
+      // Still appears to be counting non distinct rows, so disabled for now
+      // $html .= "<p>Showing " . ((($pageQ * $postsPerPage) - $postsPerPage) + 1) . " - " . ($pageQ * $postsPerPage) . " of $rows results</p>";
       $html .= '<div class="vv-pagination">';
       if($pageQ > 1) {
-        $html .= '<div class="nav-previous alignleft">Previous videos</div>';
+        $prevURL = $_SERVER['REDIRECT_URL'];
+        $prevURL .= "?title=$titleQ&category=$categoryQ&store=$storeQ&vv_page=" . ($pageQ - 1);
+        $html .= '<div class="nav-prev alignleft"><a href="' . $prevURL . '" title="Next videos">Previous videos</a></div>';
       }
       // If we have more records to show
       if((($pageQ * $postsPerPage) + $postsPerPage) < $rows) {
         $nextURL = $_SERVER['REDIRECT_URL'];
         $nextURL .= "?title=$titleQ&category=$categoryQ&store=$storeQ&vv_page=" . ($pageQ + 1);
-        // $nextURL = urlencode($nextURL);
         $html .= '<div class="nav-next alignright"><a href="' . $nextURL . '" title="Next videos">Next videos</a></div>';
       }
       $html .= '</div>';
