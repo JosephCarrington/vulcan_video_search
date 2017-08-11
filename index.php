@@ -210,6 +210,10 @@ add_shortcode('vulcan_video_search', function($atts) {
     $categoryQ = isset($_GET['category']) ? $_GET['category'] : NULL;
     $storeQ = isset($_GET['store']) ? $_GET['store'] : NULL;
 
+    if(!$titleQ && !$categoryQ) {
+      return "<p>You must enter at least a category or a title.</p>";
+    }
+
     $pageQ = isset($_GET['vv_page']) ? $_GET['vv_page'] : 1;
 
     $settings = get_option('vulcan_video_settings');
@@ -247,7 +251,6 @@ add_shortcode('vulcan_video_search', function($atts) {
     if($pageQ) {
       $query .= $wpdb->prepare(" OFFSET %d", ($pageQ * $postsPerPage) - $postsPerPage);
     }
-
     $videos = $wpdb->get_results($query);
     if(count($videos) > 0) {
       $categoriesText = $settings['categories'];
@@ -287,8 +290,6 @@ add_shortcode('vulcan_video_search', function($atts) {
           }
         $html .= '</tbody>';
       $html .= '</table>';
-      // Still appears to be counting non distinct rows, so disabled for now
-      // $html .= "<p>Showing " . ((($pageQ * $postsPerPage) - $postsPerPage) + 1) . " - " . ($pageQ * $postsPerPage) . " of $rows results</p>";
       $html .= '<div class="vv-pagination">';
       if($pageQ > 1) {
         $prevURL = $_SERVER['REDIRECT_URL'];
