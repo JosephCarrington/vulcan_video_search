@@ -145,7 +145,7 @@ function vulcan_video_admin_menu() {
 
 add_action('admin_enqueue_scripts', function($hook) {
   if($hook == "toplevel_page_vulcan_video_search") {
-    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', ['jquery', 'plupload']);
+    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', ['jquery']);
     wp_localize_script('vulcan_video_admin_js', 'serverVariables', array('pluginDirURL' => plugin_dir_url(__FILE__), 'ABSPATH' => ABSPATH));
     wp_enqueue_script('vulcan_video_admin_js');
   }
@@ -153,6 +153,7 @@ add_action('admin_enqueue_scripts', function($hook) {
 
 add_action('wp_enqueue_scripts', function() {
   wp_enqueue_style('vulcan_video_search', plugin_dir_url(__FILE__) . 'vulcan_video_search.css');
+  wp_enqueue_script('vulcan_video_js', plugin_dir_url(__FILE__) . 'scripts/search_form.js', [], false, true);
 });
 
 add_action( 'wp_ajax_vulcan_video_upload', 'vulcan_video_upload' );
@@ -308,7 +309,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= "<p>No records found.</p>";
     }
   }
-  $html .= "<form>";
+  $html .= '<form id="vulcan_video_search">';
     $html .= "<fieldset>";
       $html .= '<label for="title">Title</label>';
       $html .= '<input type="text" name="title" id="title"';
@@ -350,6 +351,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= '</select>';
     $html .= "</fieldset>";
     $html .= '<input type="submit" value="Search" />';
+    $html .= "<p id='form_feedback'></p>";
   $html .= "</form>";
   return $html;
 });
