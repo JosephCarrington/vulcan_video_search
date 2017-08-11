@@ -145,7 +145,7 @@ function vulcan_video_admin_menu() {
 
 add_action('admin_enqueue_scripts', function($hook) {
   if($hook == "toplevel_page_vulcan_video_search") {
-    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', ['jquery', 'plupload']);
+    wp_register_script('vulcan_video_admin_js', plugin_dir_url(__FILE__) . 'scripts/admin_form.js', ['jquery']);
     wp_localize_script('vulcan_video_admin_js', 'serverVariables', array('pluginDirURL' => plugin_dir_url(__FILE__), 'ABSPATH' => ABSPATH));
     wp_enqueue_script('vulcan_video_admin_js');
   }
@@ -153,6 +153,7 @@ add_action('admin_enqueue_scripts', function($hook) {
 
 add_action('wp_enqueue_scripts', function() {
   wp_enqueue_style('vulcan_video_search', plugin_dir_url(__FILE__) . 'vulcan_video_search.css');
+  wp_enqueue_script('vulcan_video_js', plugin_dir_url(__FILE__) . 'scripts/search_form.js', [], false, true);
 });
 
 add_action( 'wp_ajax_vulcan_video_upload', 'vulcan_video_upload' );
@@ -210,12 +211,16 @@ add_shortcode('vulcan_video_search', function($atts) {
     $categoryQ = isset($_GET['category']) ? $_GET['category'] : NULL;
     $storeQ = isset($_GET['store']) ? $_GET['store'] : NULL;
 
+    if(!$titleQ && !$categoryQ) {
+      return "<p>You must enter at least a category or a title.</p>";
+    }
+
     $pageQ = isset($_GET['vv_page']) ? $_GET['vv_page'] : 1;
 
     $settings = get_option('vulcan_video_settings');
     $postsPerPage = $settings['postsPerPage'];
 
-    $query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
+    $query = "SELECT DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
     if($titleQ) {
       $titleQ = stripcslashes($titleQ);
       $safeTitle = $wpdb->esc_like($titleQ);
@@ -243,14 +248,11 @@ add_shortcode('vulcan_video_search', function($atts) {
       $query .= ")";
     }
 
-    $query .= " ORDER BY name LIMIT $postsPerPage";
+    $query .= " ORDER BY name LIMIT " . ($postsPerPage + 1);
     if($pageQ) {
       $query .= $wpdb->prepare(" OFFSET %d", ($pageQ * $postsPerPage) - $postsPerPage);
     }
-
     $videos = $wpdb->get_results($query);
-    $rows = $wpdb->get_results('SELECT FOUND_ROWS() as count')[0]->count;
-    // $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
       $categoriesText = $settings['categories'];
       $categories = explode("\n", $categoriesText);
@@ -289,8 +291,6 @@ add_shortcode('vulcan_video_search', function($atts) {
           }
         $html .= '</tbody>';
       $html .= '</table>';
-      // Still appears to be counting non distinct rows, so disabled for now
-      // $html .= "<p>Showing " . ((($pageQ * $postsPerPage) - $postsPerPage) + 1) . " - " . ($pageQ * $postsPerPage) . " of $rows results</p>";
       $html .= '<div class="vv-pagination">';
       if($pageQ > 1) {
         $prevURL = $_SERVER['REDIRECT_URL'];
@@ -298,7 +298,7 @@ add_shortcode('vulcan_video_search', function($atts) {
         $html .= '<div class="nav-prev alignleft"><a href="' . $prevURL . '" title="Next videos">Previous videos</a></div>';
       }
       // If we have more records to show
-      if((($pageQ * $postsPerPage) + $postsPerPage) < $rows) {
+      if(count($videos) > $postsPerPage) {
         $nextURL = $_SERVER['REDIRECT_URL'];
         $nextURL .= "?title=$titleQ&category=$categoryQ&store=$storeQ&vv_page=" . ($pageQ + 1);
         $html .= '<div class="nav-next alignright"><a href="' . $nextURL . '" title="Next videos">Next videos</a></div>';
@@ -309,7 +309,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= "<p>No records found.</p>";
     }
   }
-  $html .= "<form>";
+  $html .= '<form id="vulcan_video_search">';
     $html .= "<fieldset>";
       $html .= '<label for="title">Title</label>';
       $html .= '<input type="text" name="title" id="title"';
@@ -351,6 +351,7 @@ add_shortcode('vulcan_video_search', function($atts) {
       $html .= '</select>';
     $html .= "</fieldset>";
     $html .= '<input type="submit" value="Search" />';
+    $html .= "<p id='form_feedback'></p>";
   $html .= "</form>";
   return $html;
 });
