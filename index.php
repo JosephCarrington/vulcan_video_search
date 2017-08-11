@@ -4,7 +4,7 @@ Plugin Name: Vulcan Video Search
 Author: Joseph Carrington
 Author URI: http://www.josephcarrington.com
 Description: A WordPress plugin to search videos imported from Vulcan's DOS formatted inventory sheets
-Version: 0.2
+Version: 0.3
 */
 register_activation_hook(__FILE__, function() {
   // Get our globals and helpers
