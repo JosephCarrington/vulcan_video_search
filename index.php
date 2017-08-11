@@ -215,7 +215,7 @@ add_shortcode('vulcan_video_search', function($atts) {
     $settings = get_option('vulcan_video_settings');
     $postsPerPage = $settings['postsPerPage'];
 
-    $query = "SELECT SQL_CALC_FOUND_ROWS DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
+    $query = "SELECT DISTINCT name, format, category, location, store FROM vulcan_videos WHERE 1=1";
     if($titleQ) {
       $titleQ = stripcslashes($titleQ);
       $safeTitle = $wpdb->esc_like($titleQ);
@@ -243,14 +243,12 @@ add_shortcode('vulcan_video_search', function($atts) {
       $query .= ")";
     }
 
-    $query .= " ORDER BY name LIMIT $postsPerPage";
+    $query .= " ORDER BY name LIMIT " . ($postsPerPage + 1);
     if($pageQ) {
       $query .= $wpdb->prepare(" OFFSET %d", ($pageQ * $postsPerPage) - $postsPerPage);
     }
 
     $videos = $wpdb->get_results($query);
-    $rows = $wpdb->get_results('SELECT FOUND_ROWS() as count')[0]->count;
-    // $videos = array_unique($videos, SORT_REGULAR);
     if(count($videos) > 0) {
       $categoriesText = $settings['categories'];
       $categories = explode("\n", $categoriesText);
@@ -298,7 +296,7 @@ add_shortcode('vulcan_video_search', function($atts) {
         $html .= '<div class="nav-prev alignleft"><a href="' . $prevURL . '" title="Next videos">Previous videos</a></div>';
       }
       // If we have more records to show
-      if((($pageQ * $postsPerPage) + $postsPerPage) < $rows) {
+      if(count($videos) > $postsPerPage) {
         $nextURL = $_SERVER['REDIRECT_URL'];
         $nextURL .= "?title=$titleQ&category=$categoryQ&store=$storeQ&vv_page=" . ($pageQ + 1);
         $html .= '<div class="nav-next alignright"><a href="' . $nextURL . '" title="Next videos">Next videos</a></div>';
